@@ -5,7 +5,10 @@ from sklearn.base import BaseEstimator
 class Regressor(BaseEstimator):
     def __init__(self):
         self.reg = RandomForestRegressor(
-            n_estimators=20, max_depth=50, max_features=10)
+            n_estimators=600, max_depth=110, max_features='sqrt',
+             min_samples_split=10, min_samples_leaf=1, bootstrap=True)
+
+
 
     def fit(self, X, y):
         self.reg.fit(X, y)
