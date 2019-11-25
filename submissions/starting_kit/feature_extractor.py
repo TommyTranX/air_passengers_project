@@ -42,13 +42,15 @@ class FeatureExtractor(object):
             sort=False)
         
         #External data but not weather
-        X_ext=data_weather[['Date', 'AirPort','Rank_2018','State','city','lat','lng','population','density','ranking','Fuel_price']]
+        X_ext=data_weather[['Date', 'AirPort','Rank_2018','State','city','lat','lng','population','density','ranking','Fuel_price','Holiday']]
+        
         Dep_data=X_ext.add_suffix('_Dep')
         Arr_data=X_ext.add_suffix('_Arr')
         
         X_encoded=pd.merge(X_encoded, Dep_data, how='left', left_on=['DateOfDeparture', 'Departure'],
             right_on=['Date_Dep', 'AirPort_Dep'],
             sort=False )
+        
         X_encoded=pd.merge(X_encoded, Arr_data, how='left', left_on=['DateOfDeparture', 'Arrival'],
             right_on=['Date_Arr', 'AirPort_Arr'],
             sort=False )
@@ -60,25 +62,8 @@ class FeatureExtractor(object):
         X_encoded = X_encoded.join(
             pd.get_dummies(X_encoded['Arrival'], prefix='a'))
         
-        #External
+
         
-        
-       # X_encoded=X_encoded.join(Dep_data, on='Departure', how='left')
-       # X_encoded=X_encoded.join(Arr_data, on='Arrival', how='left')
-        
-        
-        '''#Dummy external
-        X_encoded = X_encoded.join(pd.get_dummies(
-            X_encoded['State_Dep'], prefix='d'))
-        X_encoded = X_encoded.join(pd.get_dummies(
-            X_encoded['State_Arr'], prefix='a'))
-        
-        X_encoded = X_encoded.join(pd.get_dummies(
-            X_encoded['Major city served_Dep'], prefix='d'))
-        X_encoded = X_encoded.join(pd.get_dummies(
-            X_encoded['Major city served_Arr'], prefix='a'))
-        X_encoded=X_encoded.drop(['Airports (large hubs)_Dep', 'Airports (large hubs)_Arr','Major city served_Arr','Major city served_Dep','State_Arr','State_Dep','Fuel_price'], axis=1)
-        '''
         #Distance calculation
         X_encoded['Distance']=X_encoded.apply(lambda x:
         haversine(x['lng_Dep'],x['lat_Dep'],x['lng_Arr'],x['lat_Arr']),axis=1)
@@ -105,8 +90,10 @@ class FeatureExtractor(object):
         X_encoded = X_encoded.drop('Departure', axis=1)
         X_encoded = X_encoded.drop('Arrival', axis=1)
         
-        X_encoded=X_encoded.drop(['Date_Dep','Date_Arr','city_Dep','city_Arr','AirPort_Dep','State_Dep', 'AirPort_Arr', 'State_Arr'], axis=1)
-        
-            
+        X_encoded=X_encoded.drop(['Date_Dep','Date_Arr',
+                                  'city_Dep','city_Arr','AirPort_Dep',
+                                  'State_Dep', 'AirPort_Arr', 'State_Arr',
+                                  'Fuel_price_Arr','Holiday_Arr','year','month','week','day',
+                                  'weekday','lat_Dep','lng_Dep','lat_Arr','lng_Arr'], axis=1)
         X_array = X_encoded.values
         return X_array
