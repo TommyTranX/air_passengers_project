@@ -1,6 +1,7 @@
 
 import pandas as pd
 import os
+from math import *
 
 
 class FeatureExtractor(object):
@@ -11,9 +12,25 @@ class FeatureExtractor(object):
         pass
 
     def transform(self, X_df):
+        def haversine(lon1, lat1, lon2, lat2):
+            """
+            Calculate the great circle distance between two points 
+            on the earth (specified in decimal degrees)
+            """
+            # convert decimal degrees to radians 
+            lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+
+            # haversine formula 
+            dlon = lon2 - lon1 
+            dlat = lat2 - lat1 
+            a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+            c = 2 * asin(sqrt(a)) 
+            r = 6371 # Radius of earth in kilometers. Use 3956 for miles
+            return c * r
         X_encoded = X_df.copy()
         path = os.path.dirname(__file__)
         data_weather = pd.read_csv(os.path.join(path, 'external_data.csv'))
+         #Weather
         X_weather = data_weather[['Date', 'AirPort', 'Max TemperatureC']]
         X_weather = X_weather.rename(
             columns={'Date': 'DateOfDeparture', 'AirPort': 'Arrival'})
@@ -25,16 +42,17 @@ class FeatureExtractor(object):
             sort=False)
         
         #External data but not weather
-        X_ext=data_weather[['Date', 'AirPort','Rank_2018','State','city','lat','lng','population','density','ranking']]
+        X_ext=data_weather[['Date', 'AirPort','Rank_2018','State','city','lat','lng','population','density','ranking','Fuel_price']]
         Dep_data=X_ext.add_suffix('_Dep')
         Arr_data=X_ext.add_suffix('_Arr')
         
-        X_encoded=pd.merge(X_encoded, Dep_data, how='left', left_on=['DateOfDeparture', 'Arrival'],
+        X_encoded=pd.merge(X_encoded, Dep_data, how='left', left_on=['DateOfDeparture', 'Departure'],
             right_on=['Date_Dep', 'AirPort_Dep'],
             sort=False )
         X_encoded=pd.merge(X_encoded, Arr_data, how='left', left_on=['DateOfDeparture', 'Arrival'],
             right_on=['Date_Arr', 'AirPort_Arr'],
             sort=False )
+        
         
         #Dummy Depart/Arr
         X_encoded = X_encoded.join(pd.get_dummies(
@@ -59,8 +77,11 @@ class FeatureExtractor(object):
             X_encoded['Major city served_Dep'], prefix='d'))
         X_encoded = X_encoded.join(pd.get_dummies(
             X_encoded['Major city served_Arr'], prefix='a'))
-        X_encoded=X_encoded.drop(['Airports (large hubs)_Dep', 'Airports (large hubs)_Arr','Major city served_Arr','Major city served_Dep','State_Arr','State_Dep'], axis=1)
+        X_encoded=X_encoded.drop(['Airports (large hubs)_Dep', 'Airports (large hubs)_Arr','Major city served_Arr','Major city served_Dep','State_Arr','State_Dep','Fuel_price'], axis=1)
         '''
+        #Distance calculation
+        X_encoded['Distance']=X_encoded.apply(lambda x:
+        haversine(x['lng_Dep'],x['lat_Dep'],x['lng_Arr'],x['lat_Arr']),axis=1)
         
         
         #Dummy Date
@@ -86,6 +107,6 @@ class FeatureExtractor(object):
         
         X_encoded=X_encoded.drop(['Date_Dep','Date_Arr','city_Dep','city_Arr','AirPort_Dep','State_Dep', 'AirPort_Arr', 'State_Arr'], axis=1)
         
-        
+            
         X_array = X_encoded.values
         return X_array
