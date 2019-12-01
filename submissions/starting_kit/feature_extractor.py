@@ -4,12 +4,17 @@ import os
 from math import *
 
 
+
+
+
 class FeatureExtractor(object):
     def __init__(self):
         pass
 
+
     def fit(self, X_df, y_array):
         pass
+
 
     def transform(self, X_df):
         def haversine(lon1, lat1, lon2, lat2):
@@ -30,8 +35,15 @@ class FeatureExtractor(object):
         X_encoded = X_df.copy()
         path = os.path.dirname(__file__)
         data_weather = pd.read_csv(os.path.join(path, 'external_data.csv'))
-         #Weather
-        X_weather = data_weather[['Date', 'AirPort', 'Max TemperatureC']]
+
+
+        #Weather
+        X_weather = data_weather[['Date', 'AirPort', 'Max TemperatureC','Mean TemperatureC',
+       'Min TemperatureC', 'Dew PointC', 'MeanDew PointC', 'Min DewpointC',
+       'Max Humidity', 'Mean Humidity', 'Min Humidity',
+       'Max Sea Level PressurehPa', 'Mean Sea Level PressurehPa',
+       'Min Sea Level PressurehPa', 'Max VisibilityKm', 'Mean VisibilityKm',
+       'Min VisibilitykM', 'Max Wind SpeedKm/h', 'Mean Wind SpeedKm/h', 'CloudCover']]
         X_weather = X_weather.rename(
             columns={'Date': 'DateOfDeparture', 'AirPort': 'Arrival'})
         
@@ -56,44 +68,17 @@ class FeatureExtractor(object):
             sort=False )
         
         
-        #Dummy Depart/Arr
-        X_encoded = X_encoded.join(pd.get_dummies(
-            X_encoded['Departure'], prefix='d'))
-        X_encoded = X_encoded.join(
-            pd.get_dummies(X_encoded['Arrival'], prefix='a'))
-        
-
-        
         #Distance calculation
         X_encoded['Distance']=X_encoded.apply(lambda x:
         haversine(x['lng_Dep'],x['lat_Dep'],x['lng_Arr'],x['lat_Arr']),axis=1)
         
-        
-        #Dummy Date
-        X_encoded['Weekend'] = ((pd.DatetimeIndex(X_encoded['DateOfDeparture']).dayofweek) // 5 == 1).astype(float)
-        X_encoded['DateOfDeparture'] = pd.to_datetime(X_encoded['DateOfDeparture'])
-        X_encoded['DateOfDeparture'] = pd.to_datetime(X_encoded['DateOfDeparture'])
-        X_encoded['year'] = X_encoded['DateOfDeparture'].dt.year
-        X_encoded['month'] = X_encoded['DateOfDeparture'].dt.month
-        X_encoded['day'] = X_encoded['DateOfDeparture'].dt.day
-        X_encoded['weekday'] = X_encoded['DateOfDeparture'].dt.weekday
-        X_encoded['week'] = X_encoded['DateOfDeparture'].dt.week
-        X_encoded['n_days'] = X_encoded['DateOfDeparture'].apply(lambda date: (date - pd.to_datetime("1970-01-01")).days)
+        #Drop useless
+        X_encoded=X_encoded.drop([
+                                  'AirPort_Dep',
+                                   'AirPort_Arr', 
+                                  'Fuel_price_Arr','Holiday_Arr',
+                                'lat_Dep','lng_Dep','lat_Arr','lng_Arr','Date_Dep','Date_Arr'], axis=1)
 
-        #We one hot encode all those
-        X_encoded = X_encoded.join(pd.get_dummies(X_encoded['year'], prefix='y'))
-        X_encoded = X_encoded.join(pd.get_dummies(X_encoded['month'], prefix='m'))
-        X_encoded = X_encoded.join(pd.get_dummies(X_encoded['day'], prefix='d'))
-        X_encoded = X_encoded.join(pd.get_dummies(X_encoded['weekday'], prefix='wd'))
-        X_encoded = X_encoded.join(pd.get_dummies(X_encoded['week'], prefix='w'))
-        X_encoded = X_encoded.drop('DateOfDeparture', axis=1)
-        X_encoded = X_encoded.drop('Departure', axis=1)
-        X_encoded = X_encoded.drop('Arrival', axis=1)
-        
-        X_encoded=X_encoded.drop(['Date_Dep','Date_Arr',
-                                  'city_Dep','city_Arr','AirPort_Dep',
-                                  'State_Dep', 'AirPort_Arr', 'State_Arr',
-                                  'Fuel_price_Arr','Holiday_Arr','year','month','week','day',
-                                  'weekday','lat_Dep','lng_Dep','lat_Arr','lng_Arr'], axis=1)
+
         X_array = X_encoded.values
-        return X_array
+        return X_encoded    
